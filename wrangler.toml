@@ -10,7 +10,7 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "website_watch"
-database_id = "replace-with-d1-database-id"
+database_id = "e26e3280-2b69-49c8-8adb-1def0991ee87"
 
 [[send_email]]
 name = "EMAIL"
@@ -24,6 +24,3 @@ binding = "BROWSER"
 [vars]
 DEFAULT_EMAIL_TO = "shironeko1052@gmail.com"
 EMAIL_FROM = "notifications@mail.mskf.work"
-MONITOR_URL = "https://anc.apm.activecommunities.com/seattle/activity/search?onlineSiteId=0&site_ids=3&activity_keyword=18%2B%201.0&viewMode=list"
-MONITOR_NAME = "Seattle ActiveCommunities courses"
-INTERVAL_SECONDS = "80"

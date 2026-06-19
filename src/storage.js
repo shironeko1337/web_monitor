@@ -1,4 +1,5 @@
 export const HISTORY_DAYS = 7;
+export const DEFAULT_INTERVAL_SECONDS = 80;
 
 export async function getSetting(env, key, fallback) {
   const row = await env.DB.prepare("SELECT value FROM settings WHERE key = ?").bind(key).first();
@@ -87,7 +88,7 @@ export async function pruneHistory(env, eventId) {
 
 export async function getDashboardData(env, runtime) {
   const eventId = "seattle-active-courses";
-  const intervalSeconds = Number(await getSetting(env, "intervalSeconds", env.INTERVAL_SECONDS || "80"));
+  const intervalSeconds = Number(await getSetting(env, "intervalSeconds", String(DEFAULT_INTERVAL_SECONDS)));
   const subscriptions = await getSubscriptions(env);
   const historyResult = await env.DB.prepare(
     "SELECT checked_at, total, available, full, new_available_json, items_json, output FROM checks WHERE event_id = ? ORDER BY checked_at DESC LIMIT 50"
@@ -116,7 +117,7 @@ export async function getDashboardData(env, runtime) {
     },
     scheduleEvents: [{
       id: eventId,
-      name: env.MONITOR_NAME || "Seattle ActiveCommunities courses",
+      name: "Seattle ActiveCommunities courses",
       intervalSeconds,
       schedulerEnabled: runtime.schedulerEnabled,
       runInProgress: runtime.runInProgress,

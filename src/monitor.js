@@ -1,11 +1,15 @@
-export const EVENT_ID = "seattle-active-courses";
+export const DEFAULT_INTERVAL_SECONDS = 80;
 
-export const monitor = {
-  id: EVENT_ID,
+export const monitorEvents = [{
+  id: "seattle-active-courses",
   name: "Seattle ActiveCommunities courses",
   readySelector: ".activity-card__cornerMark",
-  url: "https://anc.apm.activecommunities.com/seattle/activity/search?onlineSiteId=0&site_ids=3&activity_keyword=18%2B%201.0&viewMode=list"
-};
+  urls: [
+    "https://anc.apm.activecommunities.com/seattle/activity/search?onlineSiteId=0&site_ids=3&activity_keyword=18%2B%201.0&viewMode=list"
+  ]
+}];
+
+export const defaultMonitorEvent = monitorEvents[0];
 
 export function extract(document) {
   return [...document.querySelectorAll(".activity-card__cornerMark")].map((statusMark) => {

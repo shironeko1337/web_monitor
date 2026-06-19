@@ -12,7 +12,7 @@ D:\vibe\website-watch-cloudflare
 
 - `src/index.js`: Worker entrypoint, dashboard/API, manual run endpoint, scheduled handler.
 - `src/ui.js`: dashboard frontend. It intentionally keeps the same single schedule-events table UI as the local app.
-- `src/monitor.js`: Seattle ActiveCommunities extraction and availability rules.
+- `src/monitor.js`: monitor event definitions, URL lists, Seattle ActiveCommunities extraction, and availability rules.
 - `src/storage.js`: D1 reads/writes for settings, subscriptions, check history, seen available IDs, and notification records.
 - `src/notifications.js`: notification layer. Email must go through this layer.
 - `migrations/0001_initial.sql`: D1 schema.
@@ -30,6 +30,8 @@ Runtime data is stored in Cloudflare D1, not local JSON:
 - dashboard settings
 
 For a deployed Worker, you do not need a local credentials file for D1 access. The Worker uses the `DB` binding in `wrangler.toml`. Cloudflare injects the binding at runtime.
+
+Worker vars in `wrangler.toml` are deployment constants only, such as default email addresses. Website monitor config should not live in Worker vars. Put monitor names, URL lists, selectors, and availability rules in `src/monitor.js`; dashboard-editable values are stored in D1.
 
 For local deployment tooling and GitHub Actions, use environment variables or GitHub repository secrets:
 

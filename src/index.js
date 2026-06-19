@@ -1,5 +1,5 @@
 import puppeteer from "@cloudflare/puppeteer";
-import { extract, getItemKey, isAvailable, monitor } from "./monitor.js";
+import { DEFAULT_INTERVAL_SECONDS, defaultMonitorEvent, extract, getItemKey, isAvailable } from "./monitor.js";
 import { sendNotification } from "./notifications.js";
 import {
   getDashboardData,
@@ -72,7 +72,7 @@ function buildEmailMessage(newAvailableItems, monitorConfig) {
   };
 }
 
-async function readAvailability(env) {
+async function readAvailability(env, monitorConfig) {
   if (!env.BROWSER) {
     throw new Error("Missing BROWSER binding. Enable Cloudflare Browser Rendering for this Worker.");
   }
@@ -80,20 +80,25 @@ async function readAvailability(env) {
   const browser = await puppeteer.launch(env.BROWSER);
   try {
     const pageHandle = await browser.newPage();
-    await pageHandle.goto(env.MONITOR_URL || monitor.url, { waitUntil: "domcontentloaded" });
-    await pageHandle.waitForSelector(monitor.readySelector, { timeout: 30000 });
-    await pageHandle.waitForTimeout(5000);
-    return pageHandle.evaluate((extractSource) => {
-      const extractFn = (0, eval)(`(${extractSource})`);
-      return extractFn(document);
-    }, extract.toString());
+    const results = [];
+    for (const url of monitorConfig.urls || []) {
+      await pageHandle.goto(url, { waitUntil: "domcontentloaded" });
+      await pageHandle.waitForSelector(monitorConfig.readySelector, { timeout: 30000 });
+      await pageHandle.waitForTimeout(5000);
+      const items = await pageHandle.evaluate((extractSource) => {
+        const extractFn = (0, eval)(`(${extractSource})`);
+        return extractFn(document);
+      }, extract.toString());
+      results.push(...items.map((item) => ({ ...item, sourceUrl: url })));
+    }
+    return results;
   } finally {
     await browser.close();
   }
 }
 
-async function analyzeChanges(env, items) {
-  const seen = await readSeenAvailable(env, monitor.id);
+async function analyzeChanges(env, monitorConfig, items) {
+  const seen = await readSeenAvailable(env, monitorConfig.id);
   const availableItems = items.filter((item) => isAvailable(item));
   const fullItems = items.filter((item) => !isAvailable(item));
   const newAvailableItems = [];
@@ -104,7 +109,7 @@ async function analyzeChanges(env, items) {
     if (!seen.has(key)) {
       newAvailableItems.push({ key, item });
     }
-    await upsertSeenAvailable(env, monitor.id, key, item);
+    await upsertSeenAvailable(env, monitorConfig.id, key, item);
   }
 
   return {
@@ -130,11 +135,11 @@ function formatOutput(items, analysis) {
   return lines.join("\n");
 }
 
-async function notifySubscribers(env, newAvailableItems) {
+async function notifySubscribers(env, monitorConfig, newAvailableItems) {
   if (newAvailableItems.length === 0) return [];
 
   const subscriptions = (await getSubscriptions(env)).filter((subscription) => subscription.enabled !== 0);
-  const message = buildEmailMessage(newAvailableItems, monitor);
+  const message = buildEmailMessage(newAvailableItems, monitorConfig);
   const notifications = [];
 
   for (const subscription of subscriptions) {
@@ -149,7 +154,7 @@ async function notifySubscribers(env, newAvailableItems) {
         sentAt: new Date().toISOString(),
         status: result.status
       };
-      await recordNotification(env, monitor.id, notification);
+      await recordNotification(env, monitorConfig.id, notification);
       notifications.push(notification);
     } catch (error) {
       const notification = {
@@ -160,7 +165,7 @@ async function notifySubscribers(env, newAvailableItems) {
         failedAt: new Date().toISOString(),
         error: error.message
       };
-      await recordNotification(env, monitor.id, notification);
+      await recordNotification(env, monitorConfig.id, notification);
       notifications.push(notification);
     }
   }
@@ -169,6 +174,7 @@ async function notifySubscribers(env, newAvailableItems) {
 }
 
 async function runMonitor(env, reason = "manual") {
+  const monitorConfig = defaultMonitorEvent;
   if (runtime.runInProgress) {
     return { skipped: true, reason: "run already in progress" };
   }
@@ -180,11 +186,11 @@ async function runMonitor(env, reason = "manual") {
   runtime.lastOutput = "";
 
   try {
-    const items = await readAvailability(env);
-    const analysis = await analyzeChanges(env, items);
+    const items = await readAvailability(env, monitorConfig);
+    const analysis = await analyzeChanges(env, monitorConfig, items);
     const output = formatOutput(items, analysis);
-    const checkedAt = await recordCheck(env, monitor.id, items, analysis, output);
-    await notifySubscribers(env, analysis.newAvailableItems);
+    const checkedAt = await recordCheck(env, monitorConfig.id, items, analysis, output);
+    await notifySubscribers(env, monitorConfig, analysis.newAvailableItems);
     runtime.lastRunFinishedAt = new Date().toISOString();
     runtime.lastExitCode = 0;
     runtime.runCount += 1;
@@ -269,7 +275,7 @@ export default {
 
   async scheduled(_event, env, ctx) {
     if (!runtime.schedulerEnabled) return;
-    const intervalSeconds = Number(await getSetting(env, "intervalSeconds", env.INTERVAL_SECONDS || "80"));
+    const intervalSeconds = Number(await getSetting(env, "intervalSeconds", String(DEFAULT_INTERVAL_SECONDS)));
     runtime.nextRunAt = null;
     if (intervalSeconds > 0) {
       ctx.waitUntil(runMonitor(env, "scheduled").catch((error) => {
