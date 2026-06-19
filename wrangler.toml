@@ -1,0 +1,29 @@
+name = "website-watch"
+main = "src/index.js"
+compatibility_date = "2026-06-15"
+compatibility_flags = ["nodejs_compat"]
+
+# Add the schedule in the Cloudflare dashboard or with Wrangler as the last deployment step.
+# [triggers]
+# crons = ["*/5 * * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "website_watch"
+database_id = "replace-with-d1-database-id"
+
+[[send_email]]
+name = "EMAIL"
+destination_address = "shironeko1052@gmail.com"
+
+# Browser Rendering is needed if the target page remains browser-rendered.
+# Enable it in Cloudflare and keep the binding name BROWSER.
+[browser]
+binding = "BROWSER"
+
+[vars]
+DEFAULT_EMAIL_TO = "shironeko1052@gmail.com"
+EMAIL_FROM = "notifications@mail.mskf.work"
+MONITOR_URL = "https://anc.apm.activecommunities.com/seattle/activity/search?onlineSiteId=0&site_ids=3&activity_keyword=18%2B%201.0&viewMode=list"
+MONITOR_NAME = "Seattle ActiveCommunities courses"
+INTERVAL_SECONDS = "80"

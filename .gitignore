@@ -1,0 +1,7 @@
+node_modules/
+.wrangler/
+.dev.vars
+credentials/*
+!credentials/README.md
+dist/
+*.log
