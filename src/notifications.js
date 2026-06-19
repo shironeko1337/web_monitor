@@ -25,7 +25,7 @@ export async function sendNotification(env, subscription, message) {
 
   if (subscription.type === "email") {
     const from = env.EMAIL_FROM || "notifications@mail.mskf.work";
-    const to = subscription.address || env.DEFAULT_EMAIL_TO;
+    const to = subscription.address;
     if (!to) throw new Error("Missing email recipient.");
 
     const email = new EmailMessage(

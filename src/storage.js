@@ -13,19 +13,26 @@ export async function setSetting(env, key, value) {
   ).bind(key, String(value), new Date().toISOString()).run();
 }
 
-export async function getSubscriptions(env) {
+export async function getSubscriptions(env, eventId = null) {
+  if (eventId) {
+    const result = await env.DB.prepare(
+      "SELECT id, event_id AS eventId, type, enabled, address FROM subscriptions WHERE event_id = ? ORDER BY created_at"
+    ).bind(eventId).all();
+    return result.results || [];
+  }
+
   const result = await env.DB.prepare(
-    "SELECT id, type, enabled, address FROM subscriptions ORDER BY created_at"
+    "SELECT id, event_id AS eventId, type, enabled, address FROM subscriptions ORDER BY created_at"
   ).all();
   return result.results || [];
 }
 
-export async function upsertEmailSubscription(env, email) {
+export async function upsertEmailSubscription(env, eventId, email) {
   const now = new Date().toISOString();
   await env.DB.prepare(
-    "INSERT INTO subscriptions (id, type, enabled, address, created_at, updated_at) VALUES (?, 'email', 1, ?, ?, ?) " +
+    "INSERT INTO subscriptions (id, event_id, type, enabled, address, created_at, updated_at) VALUES (?, ?, 'email', 1, ?, ?, ?) " +
       "ON CONFLICT(id) DO UPDATE SET enabled = 1, address = excluded.address, updated_at = excluded.updated_at"
-  ).bind("default-email", email, now, now).run();
+  ).bind(`${eventId}-email`, eventId, email, now, now).run();
 }
 
 export async function readSeenAvailable(env, eventId) {

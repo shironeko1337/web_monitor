@@ -138,7 +138,7 @@ function formatOutput(items, analysis) {
 async function notifySubscribers(env, monitorConfig, newAvailableItems) {
   if (newAvailableItems.length === 0) return [];
 
-  const subscriptions = (await getSubscriptions(env)).filter((subscription) => subscription.enabled !== 0);
+  const subscriptions = (await getSubscriptions(env, monitorConfig.id)).filter((subscription) => subscription.enabled !== 0);
   const message = buildEmailMessage(newAvailableItems, monitorConfig);
   const notifications = [];
 
@@ -243,7 +243,7 @@ async function handleApi(request, env, ctx) {
     }
 
     await setSetting(env, "intervalSeconds", String(nextInterval));
-    await upsertEmailSubscription(env, email);
+    await upsertEmailSubscription(env, defaultMonitorEvent.id, email);
     return json({ ok: true });
   }
 
@@ -253,8 +253,8 @@ async function handleApi(request, env, ctx) {
     if (!emailIsValid(email)) {
       return json({ ok: false, message: "A valid email address is required" }, 400);
     }
-    await upsertEmailSubscription(env, email);
-    return json({ ok: true, subscriptions: await getSubscriptions(env) });
+    await upsertEmailSubscription(env, defaultMonitorEvent.id, email);
+    return json({ ok: true, subscriptions: await getSubscriptions(env, defaultMonitorEvent.id) });
   }
 
   return json({ ok: false, message: "not found" }, 404);

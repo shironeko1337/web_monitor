@@ -31,7 +31,7 @@ Runtime data is stored in Cloudflare D1, not local JSON:
 
 For a deployed Worker, you do not need a local credentials file for D1 access. The Worker uses the `DB` binding in `wrangler.toml`. Cloudflare injects the binding at runtime.
 
-Worker vars in `wrangler.toml` are deployment constants only, such as default email addresses. Website monitor config should not live in Worker vars. Put monitor names, URL lists, selectors, and availability rules in `src/monitor.js`; dashboard-editable values are stored in D1.
+Worker vars in `wrangler.toml` are deployment constants only, such as the notification sender address. Website monitor config and notification recipients should not live in Worker vars. Put monitor names, URL lists, selectors, and availability rules in `src/monitor.js`; dashboard-editable values are stored in D1.
 
 For local deployment tooling and GitHub Actions, use environment variables or GitHub repository secrets:
 
@@ -70,7 +70,6 @@ Email is sent through `src/notifications.js`, which currently uses Cloudflare Em
 ```toml
 [[send_email]]
 name = "EMAIL"
-destination_address = "shironeko1052@gmail.com"
 ```
 
 The default sender is:
@@ -79,7 +78,8 @@ The default sender is:
 notifications@mail.mskf.work
 ```
 
-The dashboard Config dialog updates the recipient email in D1.
+The email binding is intentionally not configured with a fixed destination address. The dashboard Config dialog updates the recipient email in D1.
+Each monitor event has its own subscription row in D1. That row is the source of truth for where monitor results are sent.
 
 ## Browser Rendering
 

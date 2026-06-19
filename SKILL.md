@@ -12,8 +12,9 @@ Key rules:
 
 - Keep the frontend UI aligned with the local dashboard: one schedule-events table, fixed column widths, Results dialog, Config dialog, and same button names/icons.
 - Store runtime data in D1 instead of local JSON.
-- Keep Worker vars as deployment constants only.
+- Keep Worker vars as deployment constants only, such as sender addresses.
 - Put monitor names, URL lists, selectors, and availability rules in `src/monitor.js`, not in Worker vars.
+- Store notification recipients in D1 subscriptions scoped by monitor event ID. Do not add recipient fallback vars.
 - Treat the Seattle course date range as the item ID.
 - Never notify for new full courses.
 - Notify only when a new available date-range ID appears.

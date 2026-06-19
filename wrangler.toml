@@ -14,7 +14,6 @@ database_id = "e26e3280-2b69-49c8-8adb-1def0991ee87"
 
 [[send_email]]
 name = "EMAIL"
-destination_address = "shironeko1052@gmail.com"
 
 # Browser Rendering is needed if the target page remains browser-rendered.
 # Enable it in Cloudflare and keep the binding name BROWSER.
@@ -22,5 +21,4 @@ destination_address = "shironeko1052@gmail.com"
 binding = "BROWSER"
 
 [vars]
-DEFAULT_EMAIL_TO = "shironeko1052@gmail.com"
 EMAIL_FROM = "notifications@mail.mskf.work"
