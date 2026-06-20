@@ -1,9 +1,8 @@
 import puppeteer from "@cloudflare/puppeteer";
-import { DEFAULT_INTERVAL_SECONDS, defaultMonitorEvent, extract, getItemKey, isAvailable } from "./monitor.js";
+import { defaultMonitorEvent, extract, getItemKey, isAvailable } from "./monitor.js";
 import { sendNotification } from "./notifications.js";
 import {
   getDashboardData,
-  getSetting,
   getSubscriptions,
   recordCheck,
   recordNotification,
@@ -298,29 +297,16 @@ export default {
     }
   },
 
-  async scheduled(_event, env, ctx) {
+  async scheduled(_event, env, _ctx) {
     try {
       if (!runtime.schedulerEnabled) {
         console.log("[website-watch] scheduled event skipped because scheduler is disabled");
         return;
       }
 
-      let intervalSeconds = DEFAULT_INTERVAL_SECONDS;
-      try {
-        intervalSeconds = Number(await getSetting(env, "intervalSeconds", String(DEFAULT_INTERVAL_SECONDS)));
-      } catch (error) {
-        runtime.lastError = error.message;
-        runtime.lastOutput = error.stack || error.message;
-        console.error("[website-watch] scheduled event could not read D1 settings", error);
-        throw error;
-      }
-
       runtime.nextRunAt = null;
-      if (intervalSeconds > 0) {
-        await runMonitor(env, "scheduled");
-      } else {
-        console.log("[website-watch] scheduled event skipped because intervalSeconds is not positive");
-      }
+      console.log("[website-watch] scheduled event invoked by Cloudflare cron");
+      await runMonitor(env, "scheduled");
     } catch (error) {
       runtime.lastError = error.message;
       runtime.lastOutput = error.stack || error.message;
