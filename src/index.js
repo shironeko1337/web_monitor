@@ -49,6 +49,10 @@ function emailIsValid(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function buildEmailMessage(newAvailableItems, monitorConfig) {
   const subject = `[website-watch] ${newAvailableItems.length} new available course date`;
   const lines = [
@@ -83,7 +87,7 @@ async function readAvailability(env, monitorConfig) {
     for (const url of monitorConfig.urls || []) {
       await pageHandle.goto(url, { waitUntil: "domcontentloaded" });
       await pageHandle.waitForSelector(monitorConfig.readySelector, { timeout: 30000 });
-      await pageHandle.waitForTimeout(5000);
+      await sleep(5000);
       const items = await pageHandle.evaluate((extractSource) => {
         const extractFn = (0, eval)(`(${extractSource})`);
         return extractFn(document);
