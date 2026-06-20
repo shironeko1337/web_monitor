@@ -201,6 +201,7 @@ async function runMonitor(env, reason = "manual") {
     runtime.lastExitCode = 1;
     runtime.lastError = error.message;
     runtime.lastOutput = error.stack || error.message;
+    console.error(`[website-watch] ${reason} monitor failed`, error);
     throw error;
   } finally {
     runtime.runInProgress = false;
@@ -274,13 +275,35 @@ export default {
   },
 
   async scheduled(_event, env, ctx) {
-    if (!runtime.schedulerEnabled) return;
-    const intervalSeconds = Number(await getSetting(env, "intervalSeconds", String(DEFAULT_INTERVAL_SECONDS)));
-    runtime.nextRunAt = null;
-    if (intervalSeconds > 0) {
-      ctx.waitUntil(runMonitor(env, "scheduled").catch((error) => {
+    try {
+      if (!runtime.schedulerEnabled) {
+        console.log("[website-watch] scheduled event skipped because scheduler is disabled");
+        return;
+      }
+
+      let intervalSeconds = DEFAULT_INTERVAL_SECONDS;
+      try {
+        intervalSeconds = Number(await getSetting(env, "intervalSeconds", String(DEFAULT_INTERVAL_SECONDS)));
+      } catch (error) {
         runtime.lastError = error.message;
-      }));
+        runtime.lastOutput = error.stack || error.message;
+        console.error("[website-watch] scheduled event could not read D1 settings", error);
+        return;
+      }
+
+      runtime.nextRunAt = null;
+      if (intervalSeconds > 0) {
+        ctx.waitUntil(runMonitor(env, "scheduled").catch((error) => {
+          runtime.lastError = error.message;
+          runtime.lastOutput = error.stack || error.message;
+        }));
+      } else {
+        console.log("[website-watch] scheduled event skipped because intervalSeconds is not positive");
+      }
+    } catch (error) {
+      runtime.lastError = error.message;
+      runtime.lastOutput = error.stack || error.message;
+      console.error("[website-watch] scheduled handler failed before monitor start", error);
     }
   }
 };
