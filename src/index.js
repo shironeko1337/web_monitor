@@ -186,11 +186,35 @@ async function runMonitor(env, reason = "manual") {
   runtime.lastOutput = "";
 
   try {
+    console.log(`[website-watch] ${reason} monitor starting`, {
+      eventId: monitorConfig.id,
+      name: monitorConfig.name,
+      urlCount: monitorConfig.urls?.length || 0
+    });
     const items = await readAvailability(env, monitorConfig);
+    console.log(`[website-watch] ${reason} monitor extracted items`, {
+      eventId: monitorConfig.id,
+      itemCount: items.length
+    });
     const analysis = await analyzeChanges(env, monitorConfig, items);
+    console.log(`[website-watch] ${reason} monitor analyzed items`, {
+      eventId: monitorConfig.id,
+      total: analysis.total,
+      available: analysis.available,
+      full: analysis.full,
+      newAvailable: analysis.newAvailableItems.length
+    });
     const output = formatOutput(items, analysis);
     const checkedAt = await recordCheck(env, monitorConfig.id, items, analysis, output);
-    await notifySubscribers(env, monitorConfig, analysis.newAvailableItems);
+    console.log(`[website-watch] ${reason} monitor saved check`, {
+      eventId: monitorConfig.id,
+      checkedAt
+    });
+    const notifications = await notifySubscribers(env, monitorConfig, analysis.newAvailableItems);
+    console.log(`[website-watch] ${reason} monitor completed notifications`, {
+      eventId: monitorConfig.id,
+      notificationCount: notifications.length
+    });
     runtime.lastRunFinishedAt = new Date().toISOString();
     runtime.lastExitCode = 0;
     runtime.runCount += 1;
@@ -288,15 +312,12 @@ export default {
         runtime.lastError = error.message;
         runtime.lastOutput = error.stack || error.message;
         console.error("[website-watch] scheduled event could not read D1 settings", error);
-        return;
+        throw error;
       }
 
       runtime.nextRunAt = null;
       if (intervalSeconds > 0) {
-        ctx.waitUntil(runMonitor(env, "scheduled").catch((error) => {
-          runtime.lastError = error.message;
-          runtime.lastOutput = error.stack || error.message;
-        }));
+        await runMonitor(env, "scheduled");
       } else {
         console.log("[website-watch] scheduled event skipped because intervalSeconds is not positive");
       }
@@ -304,6 +325,7 @@ export default {
       runtime.lastError = error.message;
       runtime.lastOutput = error.stack || error.message;
       console.error("[website-watch] scheduled handler failed before monitor start", error);
+      throw error;
     }
   }
 };
