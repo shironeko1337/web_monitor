@@ -11,37 +11,41 @@ export const monitorEvents = [{
 
 export const defaultMonitorEvent = monitorEvents[0];
 
-export function extract(document) {
+export const extractSource = `(document) => {
   return [...document.querySelectorAll(".activity-card__cornerMark")].map((statusMark) => {
     const container = statusMark.closest(".activity-container");
     const card = container?.querySelector(".activity-card") || statusMark.closest(".activity-card");
     const scope = container || card || statusMark;
     const text = (selector) =>
-      scope.querySelector(selector)?.textContent?.replace(/\s+/g, " ").trim() || "";
+      scope.querySelector(selector)?.textContent?.replace(/\\s+/g, " ").trim() || "";
     const lines = (scope.innerText || "")
-      .split("\n")
-      .map((line) => line.replace(/\s+/g, " ").trim())
+      .split("\\n")
+      .map((line) => line.replace(/\\s+/g, " ").trim())
       .filter(Boolean);
     const link = scope.querySelector('a[href*="/Activity_Search/"]');
     const openingsText = text(".activity-card-info__openings");
-    const openingMatch = openingsText.match(/Openings\s+(\d+)/i);
+    const openingMatch = openingsText.match(/Openings\\s+(\\d+)/i);
     const propsText = text(".activity-card-info__props");
-    const idMatch = propsText.match(/#(\d+)/);
+    const idMatch = propsText.match(/#(\\d+)/);
 
     return {
-      availability: statusMark.textContent?.replace(/\s+/g, " ").trim() || "",
+      availability: statusMark.textContent?.replace(/\\s+/g, " ").trim() || "",
       date: text(".activity-card-info__dateRange span") ||
-        lines.find((line) => /\b\d{4}\b/.test(line) && /\bto\b/i.test(line)) ||
+        lines.find((line) => /\\b\\d{4}\\b/.test(line) && /\\bto\\b/i.test(line)) ||
         "",
       id: idMatch?.[1] || "",
-      name: link?.textContent?.replace(/\s+/g, " ").trim() || "",
+      name: link?.textContent?.replace(/\\s+/g, " ").trim() || "",
       openings: openingMatch ? Number(openingMatch[1]) : null,
       openingsText,
       location: lines.find((line) => /Ctr|Center|Pool|Park|Gym|AYTC/i.test(line)) || "",
-      time: lines.find((line) => /\b(?:AM|PM)\b/i.test(line)) || "",
+      time: lines.find((line) => /\\b(?:AM|PM)\\b/i.test(line)) || "",
       href: link?.href || ""
     };
   });
+}`;
+
+export function extract(document) {
+  return (0, eval)(`(${extractSource})`)(document);
 }
 
 export function getItemKey(item) {

@@ -1,5 +1,5 @@
 import puppeteer from "@cloudflare/puppeteer";
-import { defaultMonitorEvent, extract, getItemKey, isAvailable } from "./monitor.js";
+import { defaultMonitorEvent, extractSource, getItemKey, isAvailable } from "./monitor.js";
 import { sendNotification } from "./notifications.js";
 import {
   getDashboardData,
@@ -91,7 +91,7 @@ async function readAvailability(env, monitorConfig) {
       const items = await pageHandle.evaluate((extractSource) => {
         const extractFn = (0, eval)(`(${extractSource})`);
         return extractFn(document);
-      }, extract.toString());
+      }, extractSource);
       results.push(...items.map((item) => ({ ...item, sourceUrl: url })));
     }
     return results;
@@ -314,7 +314,7 @@ export default {
     } catch (error) {
       runtime.lastError = error.message;
       runtime.lastOutput = error.stack || error.message;
-      console.error("[website-watch] scheduled handler failed before monitor start", error);
+      console.error("[website-watch] scheduled handler failed", error);
       throw error;
     }
   }
